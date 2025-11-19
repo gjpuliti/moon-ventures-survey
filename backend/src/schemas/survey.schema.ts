@@ -2,11 +2,11 @@ import { z } from 'zod';
 
 export const submitResponseSchema = z.object({
   email: z.string().email('Invalid email format'),
-  surveyId: z.string().uuid('Invalid survey ID'),
+  surveyId: z.string().min(1, 'Survey ID is required'), // Accept any string, not just UUID
   stepNumber: z.number().int().min(1),
   responses: z.array(
     z.object({
-      questionId: z.string().uuid('Invalid question ID'),
+      questionId: z.string().min(1, 'Question ID is required'), // Accept any string, not just UUID
       value: z.union([z.string(), z.array(z.string())]),
     })
   ),
