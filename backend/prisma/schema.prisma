@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Survey {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true)
+  branding  Json     // { logoUrl, primaryColor, secondaryColor, backgroundColor, textColor }
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  steps    Step[]
+  responses SurveyResponse[]
+
+  @@map("surveys")
+}
+
+model Step {
+  id          String   @id @default(uuid())
+  surveyId    String
+  order       Int
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  survey     Survey     @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  questions  Question[]
+
+  @@unique([surveyId, order])
+  @@map("steps")
+}
+
+model Question {
+  id              String   @id @default(uuid())
+  stepId          String
+  order           Int
+  text            String
+  type            String   // 'dropdown' | 'checkbox' | 'text' | 'textarea' | 'date'
+  options         Json?    // string[] for dropdown/checkbox
+  isRequired      Boolean  @default(false)
+  hubspotProperty String
+  parentQuestionId String?
+  conditionValue  Json?    // string | string[] - answer value(s) that trigger this question
+  nestingLevel    Int      @default(0) // 0, 1, 2, or 3
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  step            Step     @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  parentQuestion  Question? @relation("QuestionConditional", fields: [parentQuestionId], references: [id])
+  subQuestions    Question[] @relation("QuestionConditional")
+
+  @@unique([stepId, order])
+  @@map("questions")
+}
+
+model SurveyResponse {
+  id          String   @id @default(uuid())
+  email       String
+  surveyId    String
+  responses   Json     // [{ questionId: string, value: string | string[] }]
+  currentStep Int      @default(1)
+  isCompleted Boolean  @default(false)
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@unique([email, surveyId])
+  @@map("survey_responses")
+}
+
+model AdminUser {
+  id         String    @id @default(uuid())
+  email      String    @unique
+  passwordHash String
+  role       String    @default("admin")
+  createdAt  DateTime  @default(now())
+  lastLoginAt DateTime?
+
+  @@map("admin_users")
+}
+
