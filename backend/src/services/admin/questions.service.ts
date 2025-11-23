@@ -2,8 +2,16 @@ import { prisma } from '../../utils/prisma';
 import { Question, Prisma } from '@prisma/client';
 
 export class QuestionsService {
-  async getAllQuestions() {
+  async getAllQuestions(formId?: string) {
+    const where = formId
+      ? {
+          step: {
+            formId: formId,
+          },
+        }
+      : {};
     return prisma.question.findMany({
+      where,
       orderBy: [
         { stepId: 'asc' },
         { order: 'asc' },

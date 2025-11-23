@@ -32,25 +32,29 @@ async function main() {
 
   console.log('Created admin user:', adminUser.email);
 
-  // Create default survey
-  const survey = await prisma.survey.upsert({
-    where: { id: 'default-survey-id' },
+  // Create default form
+  const form = await prisma.form.upsert({
+    where: { slug: 'post-purchase-survey' },
     update: {},
     create: {
-      id: 'default-survey-id',
       name: 'Post-Purchase Survey',
+      slug: 'post-purchase-survey',
+      type: 'post_purchase',
+      description: 'Default post-purchase survey',
       isActive: true,
+      isPublished: true,
       branding: {
         logoUrl: '',
-        primaryColor: '#000000',
-        secondaryColor: '#666666',
+        primaryColor: '#171717',
+        secondaryColor: '#2563eb',
         backgroundColor: '#ffffff',
         textColor: '#000000',
       },
+      settings: {},
     },
   });
 
-  console.log('Created default survey:', survey.name);
+  console.log('Created default form:', form.name);
 
   // ============================================
   // MOCK STEPS AND QUESTIONS - DADOS DE TESTE
@@ -62,14 +66,14 @@ async function main() {
   // Step 1
   const step1 = await prisma.step.upsert({
     where: { 
-      surveyId_order: {
-        surveyId: survey.id,
+      formId_order: {
+        formId: form.id,
         order: 1
       }
     },
     update: {},
     create: {
-      surveyId: survey.id,
+      formId: form.id,
       order: 1,
       name: 'ETAPA 1',
       description: 'Informações sobre como conheceu a Minimal',
@@ -204,14 +208,14 @@ async function main() {
   // Step 2
   const step2 = await prisma.step.upsert({
     where: { 
-      surveyId_order: {
-        surveyId: survey.id,
+      formId_order: {
+        formId: form.id,
         order: 2
       }
     },
     update: {},
     create: {
-      surveyId: survey.id,
+      formId: form.id,
       order: 2,
       name: 'ETAPA 2',
       description: 'Informações demográficas',
@@ -293,14 +297,14 @@ async function main() {
   // Step 3
   const step3 = await prisma.step.upsert({
     where: { 
-      surveyId_order: {
-        surveyId: survey.id,
+      formId_order: {
+        formId: form.id,
         order: 3
       }
     },
     update: {},
     create: {
-      surveyId: survey.id,
+      formId: form.id,
       order: 3,
       name: 'ETAPA 3',
       description: 'Feedback sobre a experiência',
@@ -352,14 +356,14 @@ async function main() {
   // Step 4
   const step4 = await prisma.step.upsert({
     where: { 
-      surveyId_order: {
-        surveyId: survey.id,
+      formId_order: {
+        formId: form.id,
         order: 4
       }
     },
     update: {},
     create: {
-      surveyId: survey.id,
+      formId: form.id,
       order: 4,
       name: 'ETAPA 4',
       description: 'Opinião sobre produtos e concorrência',

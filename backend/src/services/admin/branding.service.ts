@@ -1,47 +1,61 @@
 import { prisma } from '../../utils/prisma';
 
 export class BrandingService {
-  async getBranding(surveyId: string = 'default-survey-id') {
-    const survey = await prisma.survey.findUnique({
-      where: { id: surveyId },
+  async getBranding(formId: string) {
+    const form = await prisma.form.findUnique({
+      where: { id: formId },
       select: { branding: true },
     });
 
-    if (!survey) {
-      throw new Error('Survey not found');
+    if (!form) {
+      throw new Error('Form not found');
     }
 
-    return survey.branding;
+    return form.branding;
   }
 
   async updateBranding(
+    formId: string,
     branding: {
       logoUrl?: string;
       primaryColor?: string;
       secondaryColor?: string;
       backgroundColor?: string;
       textColor?: string;
-    },
-    surveyId: string = 'default-survey-id'
+    }
   ) {
-    const survey = await prisma.survey.findUnique({
-      where: { id: surveyId },
+    const form = await prisma.form.findUnique({
+      where: { id: formId },
     });
 
-    if (!survey) {
-      throw new Error('Survey not found');
+    if (!form) {
+      throw new Error('Form not found');
     }
 
-    const currentBranding = survey.branding as Record<string, any>;
+    const currentBranding = form.branding as Record<string, any>;
     const updatedBranding = {
       ...currentBranding,
       ...branding,
     };
 
-    return prisma.survey.update({
-      where: { id: surveyId },
+    return prisma.form.update({
+      where: { id: formId },
       data: { branding: updatedBranding },
     });
+  }
+
+  // Backward compatibility - get first active form
+  async getBrandingForDefault() {
+    const form = await prisma.form.findFirst({
+      where: { isActive: true, isPublished: true },
+      select: { branding: true },
+    });
+
+    if (!form) {
+      throw new Error('No active form found');
+    }
+
+    return form.branding;
   }
 }
 

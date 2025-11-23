@@ -10,33 +10,46 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Survey {
-  id        String   @id @default(uuid())
-  name      String
-  isActive  Boolean  @default(true)
-  branding  Json     // { logoUrl, primaryColor, secondaryColor, backgroundColor, textColor }
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Form {
+  id                  String   @id @default(uuid())
+  name                String
+  slug                String   @unique
+  type                String   @default("post_purchase") // post_purchase, lead_generation, customer_feedback, etc.
+  description         String?
+  isActive            Boolean  @default(false)
+  isPublished         Boolean  @default(false)
+  hubspotAccount      String?  @default("minimal") // "minimal" | "hoomy"
+  hubspotTargetType   String?  // "contact" | "deal" | null - determines if form syncs to contact or deal
+  hubspotTargetIdParam String? // URL parameter name to extract HubSpot ID from (e.g., "contactId", "dealId")
+  branding            Json     // { logoUrl, primaryColor, secondaryColor, backgroundColor, textColor }
+  settings            Json?    // Form-specific settings
+  metadata            Json?    // Additional data
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  publishedAt         DateTime?
 
   steps    Step[]
-  responses SurveyResponse[]
+  responses FormResponse[]
 
-  @@map("surveys")
+  @@index([slug])
+  @@index([isActive])
+  @@index([isPublished])
+  @@map("forms")
 }
 
 model Step {
   id          String   @id @default(uuid())
-  surveyId    String
+  formId      String
   order       Int
   name        String
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  survey     Survey     @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  form       Form       @relation(fields: [formId], references: [id], onDelete: Cascade)
   questions  Question[]
 
-  @@unique([surveyId, order])
+  @@unique([formId, order])
   @@map("steps")
 }
 
@@ -45,13 +58,14 @@ model Question {
   stepId          String
   order           Int
   text            String
-  type            String   // 'dropdown' | 'checkbox' | 'text' | 'textarea' | 'date'
+  type            String   // 'dropdown' | 'checkbox' | 'text' | 'textarea' | 'date' | 'email' | 'phone' | 'rating' | 'nps' | 'number'
   options         Json?    // string[] for dropdown/checkbox
   isRequired      Boolean  @default(false)
   hubspotProperty String
   parentQuestionId String?
   conditionValue  Json?    // string | string[] - answer value(s) that trigger this question
   nestingLevel    Int      @default(0) // 0, 1, 2, or 3
+  category        String?  // To group questions in the admin
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -63,10 +77,10 @@ model Question {
   @@map("questions")
 }
 
-model SurveyResponse {
+model FormResponse {
   id          String   @id @default(uuid())
   email       String
-  surveyId    String
+  formId      String
   responses   Json     // [{ questionId: string, value: string | string[] }]
   currentStep Int      @default(1)
   isCompleted Boolean  @default(false)
@@ -74,10 +88,10 @@ model SurveyResponse {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  form Form @relation(fields: [formId], references: [id], onDelete: Cascade)
 
-  @@unique([email, surveyId])
-  @@map("survey_responses")
+  @@unique([email, formId])
+  @@map("form_responses")
 }
 
 model AdminUser {

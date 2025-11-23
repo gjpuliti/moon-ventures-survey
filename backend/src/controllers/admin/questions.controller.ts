@@ -6,7 +6,8 @@ const questionsService = new QuestionsService();
 export class QuestionsController {
   async getAll(req: Request, res: Response) {
     try {
-      const questions = await questionsService.getAllQuestions();
+      const formId = req.query.formId as string | undefined;
+      const questions = await questionsService.getAllQuestions(formId);
       res.json(questions);
     } catch (error) {
       console.error('Error fetching questions:', error);

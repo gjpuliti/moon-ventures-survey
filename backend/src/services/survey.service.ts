@@ -1,15 +1,15 @@
 import { prisma } from '../utils/prisma';
-import { Question, Step, Survey } from '@prisma/client';
+import { Question, Step, Form } from '@prisma/client';
 
 export interface SurveyConfig {
-  survey: Survey;
+  survey: Form;
   steps: (Step & { questions: Question[] })[];
 }
 
 export class SurveyService {
   async getActiveSurvey(): Promise<SurveyConfig | null> {
-    const survey = await prisma.survey.findFirst({
-      where: { isActive: true },
+    const survey = await prisma.form.findFirst({
+      where: { isActive: true, isPublished: true },
       include: {
         steps: {
           orderBy: { order: 'asc' },
@@ -33,8 +33,33 @@ export class SurveyService {
   }
 
   async getSurveyById(surveyId: string): Promise<SurveyConfig | null> {
-    const survey = await prisma.survey.findUnique({
+    const survey = await prisma.form.findUnique({
       where: { id: surveyId },
+      include: {
+        steps: {
+          orderBy: { order: 'asc' },
+          include: {
+            questions: {
+              orderBy: { order: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!survey) {
+      return null;
+    }
+
+    return {
+      survey,
+      steps: survey.steps,
+    };
+  }
+
+  async getSurveyBySlug(slug: string): Promise<SurveyConfig | null> {
+    const survey = await prisma.form.findUnique({
+      where: { slug, isPublished: true, isActive: true },
       include: {
         steps: {
           orderBy: { order: 'asc' },
@@ -59,16 +84,16 @@ export class SurveyService {
 
   async saveResponse(
     email: string,
-    surveyId: string,
+    formId: string,
     stepNumber: number,
     responses: { questionId: string; value: string | string[] }[]
   ) {
-    // Get or create survey response
-    const existingResponse = await prisma.surveyResponse.findUnique({
+    // Get or create form response
+    const existingResponse = await prisma.formResponse.findUnique({
       where: {
-        email_surveyId: {
+        email_formId: {
           email,
-          surveyId,
+          formId,
         },
       },
     });
@@ -88,18 +113,18 @@ export class SurveyService {
       }
     });
 
-    const isCompleted = await this.checkIfCompleted(surveyId, stepNumber);
+    const isCompleted = await this.checkIfCompleted(formId, stepNumber);
 
-    return prisma.surveyResponse.upsert({
+    return prisma.formResponse.upsert({
       where: {
-        email_surveyId: {
+        email_formId: {
           email,
-          surveyId,
+          formId,
         },
       },
       create: {
         email,
-        surveyId,
+        formId,
         responses: updatedResponses,
         currentStep: stepNumber,
         isCompleted,
@@ -114,20 +139,20 @@ export class SurveyService {
     });
   }
 
-  async getIncompleteSurvey(email: string, surveyId: string) {
-    return prisma.surveyResponse.findUnique({
+  async getIncompleteSurvey(email: string, formId: string) {
+    return prisma.formResponse.findUnique({
       where: {
-        email_surveyId: {
+        email_formId: {
           email,
-          surveyId,
+          formId,
         },
       },
     });
   }
 
-  private async checkIfCompleted(surveyId: string, currentStep: number): Promise<boolean> {
-    const survey = await prisma.survey.findUnique({
-      where: { id: surveyId },
+  private async checkIfCompleted(formId: string, currentStep: number): Promise<boolean> {
+    const form = await prisma.form.findUnique({
+      where: { id: formId },
       include: {
         steps: {
           orderBy: { order: 'asc' },
@@ -140,10 +165,10 @@ export class SurveyService {
       },
     });
 
-    if (!survey) return false;
+    if (!form) return false;
 
     // Check if current step is the last step
-    const lastStep = survey.steps[survey.steps.length - 1];
+    const lastStep = form.steps[form.steps.length - 1];
     return currentStep >= lastStep.order;
   }
 }

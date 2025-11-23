@@ -1,17 +1,50 @@
-# Post-Purchase Survey System
+# Internal Forms Management Platform
 
-A modern, responsive survey system with admin panel, HubSpot and Google Sheets integrations.
+A comprehensive internal forms management system for Moon Ventures, evolved from a single post-purchase survey to a full-featured multi-form platform with deep HubSpot integration and robust analytics.
 
 ## Features
 
-- Multi-step survey with conditional questions (up to 3 levels)
-- Responsive design (mobile and desktop)
+### Multi-Form System
+- Create and manage multiple forms with different types (Post Purchase, Lead Generation, Customer Feedback, etc.)
+- Form-specific branding and settings
+- Publish/unpublish forms independently
+- Form duplication and archiving
+- Slug-based public URLs for each form
+
+### Form Builder
+- Visual form editor with tab navigation (Settings, Steps, Questions, Branding, Preview)
+- Drag-and-drop question reordering
+- Extended question types: text, textarea, dropdown, checkbox, date, email, phone, number, rating, NPS
+- Conditional logic editor with visual rule builder (up to 3 nesting levels)
+- Step management with ordering
+- Real-time form preview
+
+### Analytics & Insights
+- Comprehensive analytics dashboard per form
+- Completion rates and drop-off analysis
+- Response trends over time (daily, weekly, monthly)
+- Device distribution (mobile, tablet, desktop)
+- Question-level insights
+- Export responses as CSV or JSON
+
+### Integrations
+- HubSpot property auto-discovery
+- Visual property mapping UI
+- Automatic contact updates on form submission
+- Google Sheets integration for data backup
+
+### User Experience
+- Responsive design (mobile and desktop optimized)
 - Auto-save functionality per step
 - Resume incomplete surveys
-- Admin panel for question/step/branding management
-- HubSpot integration for contact property updates
-- Google Sheets integration for data backup
-- Secure admin authentication
+- Toast notifications for user feedback
+- Error boundaries for graceful error handling
+- Loading states throughout
+
+### Security
+- JWT-based admin authentication
+- Protected admin routes
+- Rate limiting on API endpoints
 
 ## Tech Stack
 
@@ -102,11 +135,10 @@ npm run dev
 
 ## Usage
 
-### Survey
+### Public Form Access
 
-- Access survey at: `http://localhost:3000`
-- Pre-fill email via URL: `http://localhost:3000?email=user@example.com`
-- Survey page: `http://localhost:3000/survey?email=user@example.com`
+- Access form by slug: `http://localhost:3000/survey/[form-slug]?email=user@example.com`
+- Legacy survey route (backward compatible): `http://localhost:3000/survey?email=user@example.com`
 
 ### Admin Panel
 
@@ -115,28 +147,68 @@ npm run dev
   - Email: `admin@example.com`
   - Password: `admin123`
 
+#### Admin Features
+
+- **Forms Dashboard** (`/admin/forms`): View all forms, create new forms, search and filter
+- **Form Editor** (`/admin/forms/[id]/edit`): Comprehensive form builder with tabs:
+  - Settings: Name, description, type, publish status
+  - Steps: Create and manage form steps
+  - Questions: Add questions with conditional logic and HubSpot mapping
+  - Branding: Customize colors, logo, and styling
+  - Preview: Real-time form preview
+- **Analytics** (`/admin/forms/[id]/analytics`): View form performance metrics and export data
+- **Integrations** (`/admin/integrations`): Manage HubSpot property mappings
+
 ## API Endpoints
 
 ### Public Endpoints
 
-- `GET /api/survey` - Get active survey configuration
-- `POST /api/survey/response` - Submit survey response
-- `GET /api/survey/resume/:email` - Get incomplete survey data
+- `GET /api/forms/:slug` - Get form configuration by slug
+- `GET /api/survey` - Get active survey configuration (legacy)
+- `POST /api/survey/response` - Submit form/survey response (supports both formId and surveyId)
+- `GET /api/survey/resume/:email` - Get incomplete form/survey data
 
 ### Admin Endpoints (Protected)
 
+#### Authentication
 - `POST /api/admin/auth/login` - Admin login
 - `GET /api/admin/auth/me` - Get current admin user
-- `GET /api/admin/questions` - List all questions
+
+#### Forms Management
+- `GET /api/admin/forms` - List all forms (supports query params: status, type, search)
+- `GET /api/admin/forms/:id` - Get form by ID
+- `POST /api/admin/forms` - Create new form
+- `PUT /api/admin/forms/:id` - Update form
+- `DELETE /api/admin/forms/:id` - Archive form
+- `POST /api/admin/forms/:id/duplicate` - Duplicate form
+- `POST /api/admin/forms/:id/publish` - Publish form
+- `POST /api/admin/forms/:id/unpublish` - Unpublish form
+
+#### Questions Management
+- `GET /api/admin/questions` - List all questions (supports formId query param)
+- `GET /api/admin/questions/:id` - Get question by ID
 - `POST /api/admin/questions` - Create question
 - `PUT /api/admin/questions/:id` - Update question
 - `DELETE /api/admin/questions/:id` - Delete question
-- `GET /api/admin/steps` - List all steps
+- `PUT /api/admin/questions/reorder` - Reorder questions
+
+#### Steps Management
+- `GET /api/admin/steps` - List all steps (supports formId query param)
+- `GET /api/admin/steps/:id` - Get step by ID
 - `POST /api/admin/steps` - Create step
 - `PUT /api/admin/steps/:id` - Update step
 - `DELETE /api/admin/steps/:id` - Delete step
-- `GET /api/admin/branding` - Get branding settings
+
+#### Branding
+- `GET /api/admin/branding` - Get branding settings (supports formId query param)
 - `PUT /api/admin/branding` - Update branding settings
+
+#### Analytics
+- `GET /api/admin/forms/:formId/analytics` - Get form analytics
+- `GET /api/admin/forms/:formId/analytics/export` - Export form responses (supports format query param: csv, json)
+
+#### Integrations
+- `GET /api/admin/integrations/hubspot/properties` - Get HubSpot properties
 
 ## Development
 

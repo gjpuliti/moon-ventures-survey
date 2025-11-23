@@ -1,8 +1,10 @@
 import { prisma } from '../../utils/prisma';
 
 export class StepsService {
-  async getAllSteps() {
+  async getAllSteps(formId?: string) {
+    const where = formId ? { formId } : {};
     return prisma.step.findMany({
+      where,
       orderBy: { order: 'asc' },
       include: {
         questions: {
@@ -24,7 +26,7 @@ export class StepsService {
   }
 
   async createStep(data: {
-    surveyId: string;
+    formId: string;
     order: number;
     name: string;
     description?: string;

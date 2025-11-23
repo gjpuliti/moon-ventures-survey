@@ -6,7 +6,8 @@ const stepsService = new StepsService();
 export class StepsController {
   async getAll(req: Request, res: Response) {
     try {
-      const steps = await stepsService.getAllSteps();
+      const formId = req.query.formId as string | undefined;
+      const steps = await stepsService.getAllSteps(formId);
       res.json(steps);
     } catch (error) {
       console.error('Error fetching steps:', error);

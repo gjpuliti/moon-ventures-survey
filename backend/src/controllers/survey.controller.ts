@@ -26,18 +26,19 @@ export class SurveyController {
 
   async submitResponse(req: Request, res: Response) {
     try {
-      const { email, stepNumber, responses, surveyId } = req.body;
+      const { email, stepNumber, responses, surveyId, formId, hubspotTargetId } = req.body;
+      const id = formId || surveyId; // Support both for backward compatibility
 
-      if (!email || !stepNumber || !responses || !surveyId) {
+      if (!email || !stepNumber || !responses || !id) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      const result = await surveyService.saveResponse(email, surveyId, stepNumber, responses);
+      const result = await surveyService.saveResponse(email, id, stepNumber, responses);
 
       // Sync to HubSpot (non-blocking)
       try {
-        const survey = await prisma.survey.findUnique({
-          where: { id: surveyId },
+        const form = await prisma.form.findUnique({
+          where: { id },
           include: {
             steps: {
               include: {
@@ -47,8 +48,8 @@ export class SurveyController {
           },
         });
 
-        if (survey) {
-          const step = survey.steps.find((s) => s.order === stepNumber);
+        if (form) {
+          const step = form.steps.find((s) => s.order === stepNumber);
           if (step) {
             const hubspotResponses = responses.map((r: { questionId: string; value: string | string[] }) => {
               const question = step.questions.find((q) => q.id === r.questionId);
@@ -59,8 +60,22 @@ export class SurveyController {
               };
             }).filter((r: { hubspotProperty: string }) => r.hubspotProperty);
 
+            // Get form's HubSpot account (default to 'minimal')
+            const hubspotAccount = (form.hubspotAccount || 'minimal') as 'minimal' | 'hoomy';
+            
+            // Get form's HubSpot target configuration
+            const hubspotTargetType = form.hubspotTargetType as 'contact' | 'deal' | null;
+            // Use provided targetId or null
+            const targetId = hubspotTargetId || null;
+
             // Run HubSpot sync asynchronously
-            hubspotService.syncSurveyResponse(email, hubspotResponses).catch((err) => {
+            hubspotService.syncSurveyResponse(
+              email, 
+              hubspotResponses, 
+              hubspotAccount,
+              hubspotTargetType,
+              targetId
+            ).catch((err) => {
               console.error('HubSpot sync failed:', err);
             });
 
@@ -92,9 +107,9 @@ export class SurveyController {
   async getResumeData(req: Request, res: Response) {
     try {
       const { email } = req.params;
-      const surveyId = req.query.surveyId as string || 'default-survey-id';
+      const formId = req.query.formId as string || req.query.surveyId as string || 'default-form-id';
 
-      const response = await surveyService.getIncompleteSurvey(email, surveyId);
+      const response = await surveyService.getIncompleteSurvey(email, formId);
 
       if (!response) {
         return res.status(404).json({ error: 'No incomplete survey found' });

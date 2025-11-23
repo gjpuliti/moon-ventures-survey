@@ -6,8 +6,13 @@ const brandingService = new BrandingService();
 export class BrandingController {
   async get(req: Request, res: Response) {
     try {
-      const surveyId = (req.query.surveyId as string) || 'default-survey-id';
-      const branding = await brandingService.getBranding(surveyId);
+      const formId = (req.query.formId as string) || req.query.surveyId as string;
+      if (!formId) {
+        // Backward compatibility - get default form
+        const branding = await brandingService.getBrandingForDefault();
+        return res.json(branding);
+      }
+      const branding = await brandingService.getBranding(formId);
       res.json(branding);
     } catch (error: any) {
       console.error('Error fetching branding:', error);
@@ -17,9 +22,13 @@ export class BrandingController {
 
   async update(req: Request, res: Response) {
     try {
-      const surveyId = (req.body.surveyId as string) || 'default-survey-id';
-      const survey = await brandingService.updateBranding(req.body, surveyId);
-      res.json(survey);
+      const formId = (req.body.formId as string) || req.body.surveyId as string;
+      if (!formId) {
+        return res.status(400).json({ error: 'formId is required' });
+      }
+      const { formId: _, surveyId: __, ...brandingData } = req.body;
+      const form = await brandingService.updateBranding(formId, brandingData);
+      res.json(form);
     } catch (error: any) {
       console.error('Error updating branding:', error);
       res.status(400).json({ error: error.message || 'Failed to update branding' });
